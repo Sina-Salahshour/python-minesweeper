@@ -4,10 +4,8 @@ from enum import Enum, auto
 
 class CellState(Enum):
     IDLE = auto()
-    IDLE_SUNKEN = auto()
     FLAG = auto()
     QUESTION = auto()
-    QUESTION_SUNKEN = auto()
     BOMB = auto()
     BOMB_WRONG = auto()
     BOMB_EXPLODED = auto()
@@ -75,6 +73,7 @@ class Cell:
     def __init__(self, win, field, grid, **kwargs) -> None:
         self.win = win
         self.state = kwargs.get("state", CellState.IDLE)
+        self.sunken = False
         self.origin = field.pos
         self.grid = grid
         self.pos = (
@@ -90,15 +89,17 @@ class Cell:
 
     def get_content(self):
         if self.state == CellState.IDLE:
-            fig = self._idle_figure
-        if self.state == CellState.IDLE_SUNKEN:
-            fig = self._idle_sunken_figure
+            if self.sunken:
+                fig = self._idle_sunken_figure
+            else:
+                fig = self._idle_figure
         if self.state == CellState.FLAG:
             fig = self._flag_figure
         if self.state == CellState.QUESTION:
-            fig = self._question_figure
-        if self.state == CellState.QUESTION_SUNKEN:
-            fig = self._question_sunken_figure
+            if self.sunken:
+                fig = self._question_sunken_figure
+            else:
+                fig = self._question_figure
         if self.state == CellState.OPEN:
             if self.data == 0:
                 fig = self._open_figure
@@ -109,11 +110,29 @@ class Cell:
             pygame.transform.scale(fig, (self._fig_size * self.win.zoom,) * 2),
         )
 
-    def click(self, btn):
-        ...
+    def click_down(self, btn):
+        if btn == pygame.BUTTON_LEFT:
+            if self.state in [CellState.IDLE, CellState.QUESTION]:
+                self.sunken = True
+
+    def click_up(self, btn):
+        if btn == pygame.BUTTON_LEFT:
+            self.sunken = False
+
+    def click_complete(self, btn):
+        if btn == pygame.BUTTON_RIGHT:
+            match self.state:
+                case CellState.IDLE:
+                    self.state = CellState.FLAG
+                case CellState.FLAG:
+                    self.state = CellState.QUESTION
+                case CellState.QUESTION:
+                    self.state = CellState.IDLE
 
 
 class Field:
+    last_keydown = None
+
     def __init__(self, win, pos, grid):
         self.pos = pos
         self.win = win
@@ -144,9 +163,21 @@ class Field:
         y = int((((pos[1] - w_pos_y) / self.win.zoom) - f_pos_y) / self.cell_size)
         return y, x
 
-    def handle_mouse_click(self, pos, btn):
+    def handle_mouse_click_down(self, pos, btn):
         if self.mouse_over(pos):
-            self[self.get_grid(pos)].click(btn)
+            grid = self.get_grid(pos)
+            self[grid].click_down(btn)
+            self.last_keydown = grid
+
+    def handle_mouse_click_up(self, pos, btn):
+        last_keydown = self.last_keydown
+        if last_keydown:
+            self[last_keydown].click_up(btn)
+        if self.mouse_over(pos):
+            grid = self.get_grid(pos)
+            if last_keydown == grid:
+                self[grid].click_complete(btn)
+            self.last_keydown = None
 
     def __getitem__(self, key):
         return self.cells[key[0]][key[1]]
