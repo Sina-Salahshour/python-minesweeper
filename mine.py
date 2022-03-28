@@ -50,6 +50,10 @@ class Win:
     def zoom(self):
         return self._zoom
 
+    def check_event(self, event: pygame.event.Event):
+        if event.type == pygame.MOUSEWHEEL:
+            self.ch_zoom(event.y, pygame.mouse.get_pos())
+
 
 class Cell:
     _idle_figure = pygame.image.load("assets/single-files/minesweeper_00.png")
@@ -178,6 +182,12 @@ class Field:
             if last_keydown == grid:
                 self[grid].click_complete(btn)
             self.last_keydown = None
+
+    def check_event(self, event: pygame.event.Event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self.handle_mouse_click_down(event.pos, event.button)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.handle_mouse_click_up(event.pos, event.button)
 
     def __getitem__(self, key):
         return self.cells[key[0]][key[1]]

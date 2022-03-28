@@ -11,13 +11,8 @@ while not done:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit(0)
-        elif event.type == pygame.MOUSEWHEEL:
-            win.ch_zoom(event.y, pygame.mouse.get_pos())
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            field.handle_mouse_click_down(event.pos, event.button)
-        elif event.type == pygame.MOUSEBUTTONUP:
-            field.handle_mouse_click_up(event.pos, event.button)
-
+        field.check_event(event)
+        win.check_event(event)
     screen.fill((53, 58, 74))
     win.render(screen)
     pygame.display.update()
