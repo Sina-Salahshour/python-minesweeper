@@ -41,9 +41,11 @@ class Win:
         zoom = self._zoom
         delta_zoom = self._zoom_fr * fr_count
         changed_zoom = zoom + delta_zoom
-        self.pos[0] -= (pos[0] * changed_zoom) / zoom - pos[0]
-        self.pos[1] -= (pos[1] * changed_zoom) / zoom - pos[1]
+        wpos = self.pos
+        delta_pos = (pos[0] - wpos[0], pos[1] - wpos[1])
         if self._zoom_range[0] < changed_zoom < self._zoom_range[1]:
+            self.pos[0] -= delta_pos[0] * changed_zoom / zoom - delta_pos[0]
+            self.pos[1] -= delta_pos[1] * changed_zoom / zoom - delta_pos[1]
             self._zoom = changed_zoom
 
     @property
