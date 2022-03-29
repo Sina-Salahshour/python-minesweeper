@@ -1,3 +1,5 @@
+from dataclasses import field
+from functools import cache
 import pygame
 from enum import Enum, auto
 
@@ -86,12 +88,59 @@ class Cell:
             self.origin[0] + self.grid[0] * self._fig_size,
             self.origin[1] + self.grid[1] * self._fig_size,
         )
-        self.data = 0
+        self.isBomb = False
         self.field = field
+        self.num = 0
+        self.isOpen = False
         win._add(self)
 
     def __del__(self):
         self.win._remove(self)
+
+    @cache
+    def get_neighbours(self):
+        sgrid = self.grid[::-1]
+        field = self.field
+        fgrid = field.grid[::-1]
+        frange = (range(fgrid[0]), range(fgrid[1]))
+        data = []
+        if sgrid[0] + 1 in frange[0]:
+            data.append(field[sgrid[0] + 1, sgrid[1]])
+            if sgrid[1] + 1 in frange[1]:
+                data.append(field[sgrid[0] + 1, sgrid[1] + 1])
+            if sgrid[1] > 0:
+                data.append(field[sgrid[0] + 1, sgrid[1] - 1])
+        if sgrid[0] > 0:
+            data.append(field[sgrid[0] - 1, sgrid[1]])
+            if sgrid[1] > 0:
+                data.append(field[sgrid[0] - 1, sgrid[1] - 1])
+        if sgrid[1] > 0:
+            data.append(field[sgrid[0], sgrid[1] - 1])
+        if sgrid[1] + 1 in frange[1]:
+            data.append(field[sgrid[0], sgrid[1] + 1])
+            if sgrid[0] > 0:
+                data.append(field[sgrid[0] - 1, sgrid[1] + 1])
+        return data
+
+    def open(self):
+        if self.state not in [CellState.IDLE, CellState.QUESTION]:
+            return
+        neighbours = self.get_neighbours()
+        num = 0
+        for neighbour in neighbours:
+            if neighbour.isBomb:
+                num += 1
+        self.num = num
+        self.isOpen = True
+        self.state = CellState.OPEN
+        if self.isBomb:
+            self.state = CellState.BOMB_EXPLODED
+            self.field.explode()
+            return
+        if not num:
+            for neighbour in neighbours:
+                if not neighbour.isOpen:
+                    neighbour.open()
 
     def get_content(self):
         if self.state == CellState.IDLE:
@@ -107,10 +156,10 @@ class Cell:
             else:
                 fig = self._question_figure
         if self.state == CellState.OPEN:
-            if self.data == 0:
+            if self.num == 0:
                 fig = self._open_figure
             else:
-                fig = self._number_figures[self.data - 1]
+                fig = self._number_figures[self.num - 1]
         return (
             self.pos,
             pygame.transform.scale(fig, (self._fig_size * self.win.zoom,) * 2),
@@ -134,6 +183,14 @@ class Cell:
                     self.state = CellState.QUESTION
                 case CellState.QUESTION:
                     self.state = CellState.IDLE
+        if btn == pygame.BUTTON_LEFT:
+            self.open()
+
+    def __str__(self) -> str:
+        return str(self.grid)
+
+    def __repr__(self) -> str:
+        return str(self)
 
 
 class Field:
