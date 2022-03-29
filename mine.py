@@ -209,7 +209,7 @@ class Cell:
 
 class Field:
     last_keydown = None
-    _exploded = False
+    _finished = False
 
     def __init__(self, win, pos, grid):
         self.pos = pos
@@ -221,7 +221,7 @@ class Field:
         self.cell_size = self.cells[0][0]._fig_size
 
     def explode(self):
-        self._exploded = True
+        self._finished = True
         for row in self.cells:
             for cell in row:
                 cell.reveal()
@@ -264,7 +264,7 @@ class Field:
             self.last_keydown = None
 
     def check_event(self, event: pygame.event.Event):
-        if self._exploded:
+        if self._finished:
             return
         if event.type == pygame.MOUSEBUTTONDOWN:
             self.handle_mouse_click_down(event.pos, event.button)

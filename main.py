@@ -4,7 +4,7 @@ from mine import Field, Win
 done = False
 screen = pygame.display.set_mode((800, 600))
 win = Win()
-field = Field(win, (10, 10), (10, 10))
+field = Field(win, pos=(10, 10), grid=(10, 10))
 field[5, 5].isBomb = True
 field[5, 7].isBomb = True
 
