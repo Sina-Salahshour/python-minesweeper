@@ -142,20 +142,34 @@ class Cell:
                 if not neighbour.isOpen:
                     neighbour.open()
 
+    def reveal(self):
+        if self.isBomb:
+            if self.state not in [CellState.FLAG, CellState.BOMB_EXPLODED]:
+                self.state = CellState.BOMB
+        if self.state == CellState.FLAG:
+            if not self.isBomb:
+                self.state = CellState.BOMB_WRONG
+
     def get_content(self):
         if self.state == CellState.IDLE:
             if self.sunken:
                 fig = self._idle_sunken_figure
             else:
                 fig = self._idle_figure
-        if self.state == CellState.FLAG:
+        elif self.state == CellState.FLAG:
             fig = self._flag_figure
-        if self.state == CellState.QUESTION:
+        elif self.state == CellState.QUESTION:
             if self.sunken:
                 fig = self._question_sunken_figure
             else:
                 fig = self._question_figure
-        if self.state == CellState.OPEN:
+        elif self.state == CellState.BOMB:
+            fig = self._bomb_figure
+        elif self.state == CellState.BOMB_EXPLODED:
+            fig = self._exploded_figure
+        elif self.state == CellState.BOMB_WRONG:
+            fig = self._bomb_wrong_figure
+        elif self.state == CellState.OPEN:
             if self.num == 0:
                 fig = self._open_figure
             else:
@@ -195,6 +209,7 @@ class Cell:
 
 class Field:
     last_keydown = None
+    _exploded = False
 
     def __init__(self, win, pos, grid):
         self.pos = pos
@@ -204,6 +219,12 @@ class Field:
             [Cell(win, self, (i, j)) for i in range(grid[0])] for j in range(grid[1])
         ]
         self.cell_size = self.cells[0][0]._fig_size
+
+    def explode(self):
+        self._exploded = True
+        for row in self.cells:
+            for cell in row:
+                cell.reveal()
 
     def mouse_over(self, pos):
         w_pos_x, w_pos_y = self.win.pos
@@ -243,6 +264,8 @@ class Field:
             self.last_keydown = None
 
     def check_event(self, event: pygame.event.Event):
+        if self._exploded:
+            return
         if event.type == pygame.MOUSEBUTTONDOWN:
             self.handle_mouse_click_down(event.pos, event.button)
         elif event.type == pygame.MOUSEBUTTONUP:
